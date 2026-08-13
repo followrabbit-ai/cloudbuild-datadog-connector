@@ -122,7 +122,20 @@ printf '%s' "$DD_API_KEY" | \
 |---|---|
 | [`modules/connector`](modules/connector) | The forwarder: function, push subscription, dead letter queue, IAM. Needs only the `google` provider. |
 | [`modules/org-log-sink`](modules/org-log-sink) | Organization sink + aggregation topic. |
-| [`modules/monitors`](modules/monitors) | Optional Datadog monitors. Separate so the core needs no Datadog provider. |
+
+This repo deliberately ships no monitors or dashboards. What is worth alerting
+on, at what threshold, and to which channel is specific to your organisation and
+your alerting stack — and Datadog already ships CI Visibility dashboards. Define
+alerts wherever you keep the rest of them.
+
+Two that have earned their place in practice, if you want a starting point:
+
+- **Failure rate** — the share of builds failing over a window, rather than a
+  raw count, so a bad hour reads the same on a busy repo and a quiet one.
+- **Liveness** — no builds reaching your backend at all for longer than your
+  quietest expected period. Unlike a first-party integration this connector is
+  your own moving part, so it can fail silently; this is the monitor on the pipe
+  itself.
 
 ## Build logs
 
