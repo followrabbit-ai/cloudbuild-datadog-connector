@@ -1,0 +1,35 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  forwarder:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci || npm install
+        working-directory: forwarder
+      - run: node --test
+        working-directory: forwarder
+
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform fmt -check -recursive
+      # Modules are validated standalone; examples reference this repo by URL
+      # and would need network + credentials, so they are format-checked only.
+      - name: validate modules
+        run: |
+          for m in modules/*/; do
+            echo "== $m"
+            terraform -chdir="$m" init -backend=false -input=false
+            terraform -chdir="$m" validate
+          done

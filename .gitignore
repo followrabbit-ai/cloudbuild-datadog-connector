@@ -1,0 +1,8 @@
+node_modules/
+*.zip
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*_override.tf
+.DS_Store

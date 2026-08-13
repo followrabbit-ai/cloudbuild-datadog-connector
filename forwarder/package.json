@@ -1,0 +1,17 @@
+{
+  "name": "cloudbuild-datadog-connector",
+  "version": "1.0.0",
+  "description": "Forwards Google Cloud Build results and logs to Datadog CI Visibility",
+  "license": "Apache-2.0",
+  "main": "index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@google-cloud/cloudbuild": "^5.6.0",
+    "@google-cloud/functions-framework": "^5.0.5"
+  }
+}
