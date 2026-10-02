@@ -9,6 +9,9 @@ terraform {
       source  = "hashicorp/archive"
       version = ">= 2.4"
     }
+    time = {
+      source = "hashicorp/time"
+    }
   }
 }
 
@@ -88,6 +91,14 @@ resource "google_cloudfunctions2_function" "forwarder" {
   location = var.region
   project  = var.project_id
 
+  # Cloud Run checks the revision's secret access at deploy time; without this the
+  # grant and the deploy race and the first apply fails with "Permission denied on
+  # secret ... for Revision service account".
+  depends_on = [
+    google_secret_manager_secret_iam_member.datadog_key,
+    google_secret_manager_secret_iam_member.github_token,
+  ]
+
   build_config {
     runtime     = "nodejs20"
     entry_point = "forwardBuild"
@@ -159,6 +170,18 @@ resource "google_service_account_iam_member" "pubsub_token_creator" {
   member             = local.pubsub_agent
 }
 
+# IAM is eventually consistent and Pub/Sub starts pushing as soon as the subscription
+# exists: a push that lands before the invoker grant and the token-creator grant have
+# propagated gets 401/403, and five of those dead-letter the build event.
+resource "time_sleep" "pusher_iam_propagation" {
+  create_duration = "60s"
+
+  depends_on = [
+    google_cloud_run_service_iam_member.pusher_invoker,
+    google_service_account_iam_member.pubsub_token_creator,
+  ]
+}
+
 resource "google_pubsub_topic" "dead_letter" {
   name    = "${var.name}-dlq"
   project = var.project_id
@@ -199,7 +222,7 @@ resource "google_pubsub_subscription" "forwarder" {
     max_delivery_attempts = var.max_delivery_attempts
   }
 
-  depends_on = [google_cloud_run_service_iam_member.pusher_invoker]
+  depends_on = [time_sleep.pusher_iam_propagation]
 }
 
 resource "google_pubsub_topic_iam_member" "dlq_publisher" {
